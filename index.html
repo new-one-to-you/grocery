@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>General Store</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #f8ffae, #43c6ac);
+      background-attachment: fixed;
+      text-align: center;
+      padding: 20px;
+      margin: 0;
+    }
+
+    h1 {
+      color: #2c3e50;
+      font-size: 2.5rem;
+      margin-bottom: 10px;
+    }
+
+    input[type="text"] {
+      padding: 10px;
+      width: 90%;
+      max-width: 400px;
+      font-size: 16px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    .product-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      width: 90%;
+      max-width: 250px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      cursor: pointer;
+      transition: transform 0.3s;
+    }
+
+    .card:hover {
+      transform: scale(1.05);
+    }
+
+    .card img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 10px 10px 0 0;
+    }
+
+    .card-body {
+      padding: 15px;
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .card-mrp {
+      text-decoration: line-through;
+      color: grey;
+    }
+
+    .card-price {
+      color: green;
+      font-weight: bold;
+    }
+
+    .btn {
+      background-color: #27ae60;
+      color: white;
+      padding: 8px 12px;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+
+    .zoom-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.8);
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+
+    .zoom-box {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      text-align: center;
+      max-width: 90%;
+      max-height: 90%;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .zoom-image-container {
+      width: 100%;
+      height: 400px;
+      overflow: hidden;
+      cursor: grab;
+    }
+
+    .zoom-image-container img {
+      transition: transform 0.2s ease;
+      user-select: none;
+      pointer-events: none;
+      transform-origin: center center;
+    }
+
+    .close-btn {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: red;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      font-size: 14px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .bubble {
+      position: fixed;
+      bottom: -100px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 50%;
+      animation: rise 20s infinite ease-in;
+      z-index: 0;
+    }
+
+    @keyframes rise {
+      0% { transform: translateY(0) scale(1); opacity: 0.8; }
+      100% { transform: translateY(-110vh) scale(1.5); opacity: 0; }
+    }
+
+    @media (max-width: 600px) {
+      h1 { font-size: 1.8rem; }
+      .zoom-image-container { height: 250px; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🛒 Welcome to My General Store</h1>
+  <input type="text" id="searchBar" placeholder="Search for products...">
+  <div id="product-list" class="product-grid"></div>
+
+  <!-- Zoom Modal -->
+  <div id="zoomOverlay" class="zoom-overlay">
+    <div id="zoomBox" class="zoom-box">
+      <button id="closeBtn" class="close-btn">X Close</button>
+      <h2 id="zoomTitle"></h2>
+      <div class="zoom-image-container" id="zoomContainer">
+        <img id="zoomImage" src="" alt="Product">
+      </div>
+      <p id="zoomMrp"></p>
+      <p id="zoomPrice"></p>
+    </div>
+  </div>
+
+  <script>
+    const overlay = document.getElementById("zoomOverlay");
+    const zoomImage = document.getElementById("zoomImage");
+    const zoomTitle = document.getElementById("zoomTitle");
+    const zoomMrp = document.getElementById("zoomMrp");
+    const zoomPrice = document.getElementById("zoomPrice");
+    const zoomContainer = document.getElementById("zoomContainer");
+    const closeBtn = document.getElementById("closeBtn");
+    const searchBar = document.getElementById("searchBar");
+    const productList = document.getElementById("product-list");
+
+    let scale = 1;
+    let isDragging = false;
+    let origin = { x: 0, y: 0 };
+    let offset = { x: 0, y: 0 };
+    let allProducts = [];
+
+    function updateZoomTransform() {
+      const containerRect = zoomContainer.getBoundingClientRect();
+      const imgWidth = zoomImage.naturalWidth * scale;
+      const imgHeight = zoomImage.naturalHeight * scale;
+      const maxOffsetX = Math.max(0, (imgWidth - containerRect.width) / 2);
+      const maxOffsetY = Math.max(0, (imgHeight - containerRect.height) / 2);
+      offset.x = Math.max(-maxOffsetX, Math.min(maxOffsetX, offset.x));
+      offset.y = Math.max(-maxOffsetY, Math.min(maxOffsetY, offset.y));
+      zoomImage.style.transform = `translate(${offset.x}px, ${offset.y}px) scale(${scale})`;
+    }
+
+    function renderProducts(products) {
+      productList.innerHTML = '';
+      if (products.length === 0) {
+        productList.innerHTML = "<p>No products found.</p>";
+        return;
+      }
+
+      products.forEach(p => {
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <img src="${p.image}" alt="${p.name}">
+          <div class="card-body">
+            <div class="card-title">${p.name}</div>
+            <div class="card-mrp">MRP: ₹${p.mrp}</div>
+            <div class="card-price">Price: ₹${p.price}</div>
+            <button class="btn">Add to Cart</button>
+          </div>
+        `;
+
+        card.addEventListener("click", () => {
+          scale = 1;
+          offset = { x: 0, y: 0 };
+          zoomImage.style.transform = "none";
+          zoomImage.src = p.image;
+          zoomImage.alt = p.name;
+          zoomTitle.innerText = p.name;
+          zoomMrp.innerHTML = `<span class="card-mrp">MRP: ₹${p.mrp}</span>`;
+          zoomPrice.innerHTML = `<span class="card-price">Price: ₹${p.price}</span>`;
+          overlay.style.display = "flex";
+        });
+
+        productList.appendChild(card);
+      });
+    }
+
+    fetch("products.json")
+      .then(res => res.json())
+      .then(products => {
+        allProducts = products;
+        renderProducts(allProducts);
+      });
+
+    searchBar.addEventListener("input", () => {
+      const query = searchBar.value.toLowerCase();
+      const filtered = allProducts.filter(p => p.name.toLowerCase().includes(query));
+      renderProducts(filtered);
+    });
+
+    closeBtn.addEventListener("click", () => overlay.style.display = "none");
+
+    overlay.addEventListener("click", (e) => {
+      if (e.target === overlay) overlay.style.display = "none";
+    });
+
+    zoomContainer.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const previousScale = scale;
+      scale += e.deltaY < 0 ? 0.1 : -0.1;
+      scale = Math.min(Math.max(1, scale), 3);
+      const scaleRatio = scale / previousScale;
+      offset.x *= scaleRatio;
+      offset.y *= scaleRatio;
+      updateZoomTransform();
+    });
+
+    zoomContainer.addEventListener("mousedown", (e) => {
+      isDragging = true;
+      origin = { x: e.clientX - offset.x, y: e.clientY - offset.y };
+      zoomContainer.style.cursor = "grabbing";
+    });
+
+    window.addEventListener("mouseup", () => {
+      isDragging = false;
+      zoomContainer.style.cursor = "grab";
+    });
+
+    window.addEventListener("mousemove", (e) => {
+      if (isDragging) {
+        offset.x = e.clientX - origin.x;
+        offset.y = e.clientY - origin.y;
+        updateZoomTransform();
+      }
+    });
+
+    for (let i = 0; i < 15; i++) {
+      const bubble = document.createElement("div");
+      bubble.classList.add("bubble");
+      bubble.style.width = bubble.style.height = `${Math.random() * 40 + 20}px`;
+      bubble.style.left = `${Math.random() * 100}vw`;
+      bubble.style.animationDuration = `${10 + Math.random() * 10}s`;
+      document.body.appendChild(bubble);
+    }
+  </script>
+</body>
+</html>

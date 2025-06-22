@@ -1,0 +1,14 @@
+[
+  {
+    "name": "rice",
+    "mrp": 100,
+    "price": 80,
+    "image": "rice.jpg"
+  },
+  {
+    "name": "sugar",
+    "mrp": 60,
+    "price": 45,
+    "image": "sugar.jpg"
+  }
+]
