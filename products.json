@@ -1,14 +1,20 @@
 [
   {
-    "name": "rice",
-    "mrp": 100,
-    "price": 80,
+    "name": { "en": "Rice", "hi": "चावल", "te": "బియ్యం" },
+    "mrp": 70,
+    "price": 70,
     "image": "rice.jpg"
   },
   {
-    "name": "sugar",
-    "mrp": 60,
-    "price": 45,
+    "name": { "en": "Sugar", "hi": "चीनी", "te": "చక్కెర" },
+    "mrp": 50,
+    "price": 50,
     "image": "sugar.jpg"
+  },
+  {
+    "name": { "en": "Milk", "hi": "दूध", "te": "పాలు" },
+    "mrp": 60,
+    "price": 50,
+    "image": "milk.jpg"
   }
 ]
