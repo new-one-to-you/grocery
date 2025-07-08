@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>General Store</title>
   <style>
     body {
@@ -14,20 +14,57 @@
       margin: 0;
     }
 
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      max-width: 1000px;
+      margin: auto;
+      padding: 0 10px;
+    }
+
     h1 {
       color: #2c3e50;
       font-size: 2.5rem;
       margin-bottom: 10px;
     }
 
-    input[type="text"] {
-      padding: 10px;
+    #languageSelector {
+      padding: 8px;
+      border-radius: 8px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+    }
+
+    .search-container {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0;
+    }
+
+    .search-wrapper {
+      position: relative;
       width: 90%;
       max-width: 400px;
+    }
+
+    #searchBar {
+      padding: 10px 40px 10px 10px;
+      width: 100%;
       font-size: 16px;
-      margin-bottom: 20px;
       border: 1px solid #ccc;
       border-radius: 8px;
+    }
+
+    #micIcon {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: pointer;
+      font-size: 20px;
+      color: #27ae60;
+      user-select: none;
     }
 
     .product-grid {
@@ -41,7 +78,7 @@
       background: white;
       border-radius: 10px;
       width: 90%;
-      max-width: 250px;
+      max-width: 310px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
       cursor: pointer;
       transition: transform 0.3s;
@@ -54,8 +91,11 @@
     .card img {
       width: 100%;
       height: 200px;
-      object-fit: cover;
+      object-fit: contain;
+      background-color: #f9f9f9;
       border-radius: 10px 10px 0 0;
+      padding: 10px;
+      box-sizing: border-box;
     }
 
     .card-body {
@@ -114,14 +154,23 @@
       width: 100%;
       height: 400px;
       overflow: hidden;
+      touch-action: none;
       cursor: grab;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
 
     .zoom-image-container img {
-      transition: transform 0.2s ease;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      transform-origin: center center;
       user-select: none;
       pointer-events: none;
-      transform-origin: center center;
+      transition: transform 0.2s ease;
+      display: block;
+      margin: auto;
     }
 
     .close-btn {
@@ -137,30 +186,30 @@
       cursor: pointer;
     }
 
-    .bubble {
-      position: fixed;
-      bottom: -100px;
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 50%;
-      animation: rise 20s infinite ease-in;
-      z-index: 0;
-    }
-
-    @keyframes rise {
-      0% { transform: translateY(0) scale(1); opacity: 0.8; }
-      100% { transform: translateY(-110vh) scale(1.5); opacity: 0; }
-    }
-
     @media (max-width: 600px) {
       h1 { font-size: 1.8rem; }
+      .header { flex-direction: column; align-items: flex-start; }
       .zoom-image-container { height: 250px; }
     }
   </style>
 </head>
 <body>
+  <div class="header">
+    <h1 id="welcomeText">🛒 Welcome to RAN General Store</h1>
+    <select id="languageSelector">
+      <option value="en">English</option>
+      <option value="hi">हिन्दी</option>
+      <option value="te">తెలుగు</option>
+    </select>
+  </div>
 
-  <h1>🛒 Welcome to My General Store</h1>
-  <input type="text" id="searchBar" placeholder="Search for products...">
+  <div class="search-container">
+    <div class="search-wrapper">
+      <input type="text" id="searchBar" placeholder="Search for products...">
+      <span id="micIcon">🎤</span>
+    </div>
+  </div>
+
   <div id="product-list" class="product-grid"></div>
 
   <!-- Zoom Modal -->
@@ -177,6 +226,33 @@
   </div>
 
   <script>
+    const translations = {
+      en: {
+        welcome: "🛒 Welcome to RAN General Store",
+        searchPlaceholder: "Search for products...",
+        mrp: "MRP",
+        price: "Price",
+        addToCart: "Add to Cart",
+        close: "X Close"
+      },
+      hi: {
+        welcome: "🛒 स्वागत है RAN जनरल स्टोर में",
+        searchPlaceholder: "उत्पाद खोजें...",
+        mrp: "अधिकतम खुदरा मूल्य",
+        price: "मूल्य",
+        addToCart: "कार्ट में जोड़ें",
+        close: "बंद करें"
+      },
+      te: {
+        welcome: "🛒 RAN సాధారణ స్టోర్‌కు స్వాగతం",
+        searchPlaceholder: "ఉత్పత్తులను వెతకండి...",
+        mrp: "ఎంఆర్‌పి",
+        price: "ధర",
+        addToCart: "కార్ట్‌లో చేర్చు",
+        close: "మూసివెయ్యి"
+      }
+    };
+
     const overlay = document.getElementById("zoomOverlay");
     const zoomImage = document.getElementById("zoomImage");
     const zoomTitle = document.getElementById("zoomTitle");
@@ -186,7 +262,10 @@
     const closeBtn = document.getElementById("closeBtn");
     const searchBar = document.getElementById("searchBar");
     const productList = document.getElementById("product-list");
+    const languageSelector = document.getElementById("languageSelector");
+    const welcomeText = document.getElementById("welcomeText");
 
+    let selectedLanguage = "en";
     let scale = 1;
     let isDragging = false;
     let origin = { x: 0, y: 0 };
@@ -194,14 +273,21 @@
     let allProducts = [];
 
     function updateZoomTransform() {
-      const containerRect = zoomContainer.getBoundingClientRect();
-      const imgWidth = zoomImage.naturalWidth * scale;
-      const imgHeight = zoomImage.naturalHeight * scale;
-      const maxOffsetX = Math.max(0, (imgWidth - containerRect.width) / 2);
-      const maxOffsetY = Math.max(0, (imgHeight - containerRect.height) / 2);
-      offset.x = Math.max(-maxOffsetX, Math.min(maxOffsetX, offset.x));
-      offset.y = Math.max(-maxOffsetY, Math.min(maxOffsetY, offset.y));
       zoomImage.style.transform = `translate(${offset.x}px, ${offset.y}px) scale(${scale})`;
+    }
+
+    function getProductName(name) {
+      if (typeof name === 'object') {
+        return name[selectedLanguage] || name["en"] || Object.values(name)[0];
+      }
+      return name;
+    }
+
+    function applyTranslations() {
+      const t = translations[selectedLanguage];
+      welcomeText.innerText = t.welcome;
+      searchBar.placeholder = t.searchPlaceholder;
+      closeBtn.innerText = t.close;
     }
 
     function renderProducts(products) {
@@ -211,16 +297,19 @@
         return;
       }
 
+      const t = translations[selectedLanguage];
+
       products.forEach(p => {
+        const displayName = getProductName(p.name);
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
-          <img src="${p.image}" alt="${p.name}">
+          <img src="${p.image}" alt="${displayName}">
           <div class="card-body">
-            <div class="card-title">${p.name}</div>
-            <div class="card-mrp">MRP: ₹${p.mrp}</div>
-            <div class="card-price">Price: ₹${p.price}</div>
-            <button class="btn">Add to Cart</button>
+            <div class="card-title">${displayName}</div>
+            <div class="card-mrp">${t.mrp}: ₹${p.mrp}</div>
+            <div class="card-price">${t.price}: ₹${p.price}</div>
+            <button class="btn">${t.addToCart}</button>
           </div>
         `;
 
@@ -229,10 +318,10 @@
           offset = { x: 0, y: 0 };
           zoomImage.style.transform = "none";
           zoomImage.src = p.image;
-          zoomImage.alt = p.name;
-          zoomTitle.innerText = p.name;
-          zoomMrp.innerHTML = `<span class="card-mrp">MRP: ₹${p.mrp}</span>`;
-          zoomPrice.innerHTML = `<span class="card-price">Price: ₹${p.price}</span>`;
+          zoomImage.alt = displayName;
+          zoomTitle.innerText = displayName;
+          zoomMrp.innerHTML = `<span class="card-mrp">${t.mrp}: ₹${p.mrp}</span>`;
+          zoomPrice.innerHTML = `<span class="card-price">${t.price}: ₹${p.price}</span>`;
           overlay.style.display = "flex";
         });
 
@@ -244,20 +333,24 @@
       .then(res => res.json())
       .then(products => {
         allProducts = products;
+        applyTranslations();
         renderProducts(allProducts);
       });
 
     searchBar.addEventListener("input", () => {
       const query = searchBar.value.toLowerCase();
-      const filtered = allProducts.filter(p => p.name.toLowerCase().includes(query));
+      const filtered = allProducts.filter(p => getProductName(p.name).toLowerCase().includes(query));
       renderProducts(filtered);
     });
 
-    closeBtn.addEventListener("click", () => overlay.style.display = "none");
-
-    overlay.addEventListener("click", (e) => {
-      if (e.target === overlay) overlay.style.display = "none";
+    languageSelector.addEventListener("change", () => {
+      selectedLanguage = languageSelector.value;
+      applyTranslations();
+      renderProducts(allProducts);
     });
+
+    closeBtn.addEventListener("click", () => overlay.style.display = "none");
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.style.display = "none"; });
 
     zoomContainer.addEventListener("wheel", (e) => {
       e.preventDefault();
@@ -289,13 +382,24 @@
       }
     });
 
-    for (let i = 0; i < 15; i++) {
-      const bubble = document.createElement("div");
-      bubble.classList.add("bubble");
-      bubble.style.width = bubble.style.height = `${Math.random() * 40 + 20}px`;
-      bubble.style.left = `${Math.random() * 100}vw`;
-      bubble.style.animationDuration = `${10 + Math.random() * 10}s`;
-      document.body.appendChild(bubble);
+    // Voice Search
+    const micIcon = document.getElementById("micIcon");
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.lang = "en-IN";
+      recognition.continuous = false;
+
+      micIcon.addEventListener("click", () => {
+        recognition.start();
+      });
+
+      recognition.onresult = (event) => {
+        searchBar.value = event.results[0][0].transcript;
+        searchBar.dispatchEvent(new Event("input"));
+      };
+    } else {
+      micIcon.style.display = "none";
     }
   </script>
 </body>
