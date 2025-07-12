@@ -40,6 +40,7 @@ const productList = document.getElementById("product-list");
 const languageSelector = document.getElementById("languageSelector");
 const welcomeText = document.getElementById("welcomeText");
 const micIcon = document.getElementById("micIcon");
+const voiceOverlay = document.getElementById("voiceOverlay");
 
 let selectedLanguage = "en";
 let scale = 1;
@@ -87,7 +88,6 @@ function renderProducts(products) {
         <button class="btn">${t.addToCart}</button>
       </div>
     `;
-
     card.addEventListener("click", () => {
       scale = 1;
       offset = { x: 0, y: 0 };
@@ -99,7 +99,6 @@ function renderProducts(products) {
       zoomPrice.innerHTML = `<span class="card-price">${t.price}: ₹${p.price}</span>`;
       overlay.style.display = "flex";
     });
-
     productList.appendChild(card);
   });
 }
@@ -193,19 +192,33 @@ if (SpeechRecognition) {
   updateSpeechLanguage();
 
   micIcon.addEventListener("click", () => {
-    recognition.start();
+    try {
+      voiceOverlay.style.display = "flex";
+      recognition.start();
+    } catch (err) {
+      console.error("Speech start error:", err);
+      voiceOverlay.style.display = "none";
+      alert("Microphone access denied or unsupported.");
+    }
   });
 
   recognition.onresult = (event) => {
+    voiceOverlay.style.display = "none";
     const spokenText = event.results[0][0].transcript;
     searchBar.value = spokenText;
     filterProducts(spokenText);
   };
 
   recognition.onerror = (e) => {
+    voiceOverlay.style.display = "none";
     console.error("Speech recognition error:", e.error);
+    alert("Voice recognition error: " + e.error);
+  };
+
+  recognition.onend = () => {
+    voiceOverlay.style.display = "none";
   };
 } else {
   micIcon.style.display = "none";
-  alert("Voice recognition not supported in this browser.");
+  alert("❌ Voice recognition is not supported in this browser.\nTry using Chrome on Android with HTTPS.");
 }
